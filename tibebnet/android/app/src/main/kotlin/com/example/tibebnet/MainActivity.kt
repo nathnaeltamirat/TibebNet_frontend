@@ -1,4 +1,4 @@
-package com.example.safeshade
+package com.example.tibebnet
 
 import io.flutter.embedding.android.FlutterActivity
 

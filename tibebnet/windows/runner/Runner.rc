@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "safeshade" "\0"
+            VALUE "FileDescription", "tibebnet" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "safeshade" "\0"
+            VALUE "InternalName", "tibebnet" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "safeshade.exe" "\0"
-            VALUE "ProductName", "safeshade" "\0"
+            VALUE "OriginalFilename", "tibebnet.exe" "\0"
+            VALUE "ProductName", "tibebnet" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
