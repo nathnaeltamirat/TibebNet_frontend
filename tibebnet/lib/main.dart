@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         scaffoldBackgroundColor: Color(0XFF201A30),
       ),
-      home: const SignUpPage()
+      home: const LoginPage()
     );
 
   }
