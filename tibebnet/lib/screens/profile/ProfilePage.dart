@@ -26,14 +26,23 @@ class ProfilePage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                'TibebNet',
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    GradientText(
+                      text: "TibebNet",
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0CF2E0), Color(0xFF078C82)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
               const SizedBox(height: 16),
               const CircleAvatar(
                 radius: 50,
@@ -230,6 +239,31 @@ class ProfilePage extends StatelessWidget {
         label,
         style: const TextStyle(fontSize: 10, color: Colors.black),
       ),
+    );
+  }
+}
+
+class GradientText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+  final Gradient gradient;
+
+  const GradientText({
+    Key? key,
+    required this.text,
+    required this.gradient,
+    this.style = const TextStyle(),
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback:
+          (bounds) => gradient.createShader(
+            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+          ),
+      blendMode: BlendMode.srcIn,
+      child: Text(text, style: style),
     );
   }
 }

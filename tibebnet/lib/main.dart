@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tibebnet/screens/auth/login_screen.dart';
 import 'package:tibebnet/screens/auth/signup_screen.dart';
+import 'package:tibebnet/screens/profile/ProfilePage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,13 +12,8 @@ class MyApp extends StatelessWidget {
 
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(
-        scaffoldBackgroundColor: Color(0XFF201A30),
-      ),
-      home: const LoginPage()
+      theme: ThemeData(scaffoldBackgroundColor: Color(0XFF201A30)),
+      home: const ProfilePage(),
     );
-
   }
 }
-
-
