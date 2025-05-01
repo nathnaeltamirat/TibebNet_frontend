@@ -70,6 +70,9 @@ flutter:
     - assets/images/login.png
     - assets/images/person.jpg
     - assets/images/achievement_banner.png
+    - assets/images/c1.jpg
+    - assets/images/c2.jpg
+    - assets/images/c3.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

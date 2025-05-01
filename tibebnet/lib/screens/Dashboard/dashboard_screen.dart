@@ -1,7 +1,7 @@
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:tibebnet/screens/post/PostPage.dart';
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -17,12 +17,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Start auto-sliding
     _timer = Timer.periodic(Duration(seconds: 3), (Timer timer) {
       _currentPage = (_currentPage + 1) % 3;
       _controller.animateToPage(
         _currentPage,
-        duration: Duration(milliseconds: 350),
+        duration: Duration(milliseconds: 500),
         curve: Curves.easeIn,
       );
     });
@@ -40,75 +39,96 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _selectedIndex = index;
     });
     // Handle navigation based on selected index
-    // Add navigation logic here if needed
+    if (_selectedIndex == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => Postpage()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Color(0xFF1B113A),
-        body: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(),
-                      _buildSpacing(),
-                      _buildSearchBar(),
-                      _buildSpacing(),
-                      _buildImageSlider(),
-                      _buildSpacing(),
-                      _buildCommunitySection(),
-                      _buildSpacing(),
-                      Text(
-                        'POSTS',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold),
+      backgroundColor: Color(0xFF1B113A),
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(),
+                    _buildSpacing(),
+                    _buildSearchBar(),
+                    _buildSpacing(),
+                    _buildImageSlider(),
+                    _buildSpacing(),
+                    _buildCommunitySection(),
+                    _buildSpacing(),
+                    Text(
+                      'POSTS',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      SizedBox(height: 10),
-                    ],
-                  ),
+                    ),
+                    SizedBox(height: 10),
+                  ],
                 ),
               ),
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: _buildPostItem(),
-                    );
-                  },
-                  childCount: 5, // Number of posts you want to display
-                ),
-              ),
-            ],
-          ),
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          elevation: 0,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          backgroundColor: Color(0xFF2A2141),  // Background color of the BottomNavigationBar
-          selectedItemColor: Color(0xFF9DFBE6),
-          unselectedItemColor: Color(0xFF029372),
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          type: BottomNavigationBarType.fixed,
-          items: [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.group), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.add), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.assignment), label: ''),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
+            ),
+            SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: _buildPostItem(),
+                );
+              }, childCount: 5),
+            ),
           ],
-        )
-
+        ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        elevation: 0,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        backgroundColor: Color(0xFF2A2141),
+        selectedItemColor: Color(0xFF007BFF),
+        unselectedItemColor: Colors.blueGrey,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        type: BottomNavigationBarType.fixed,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.home,
+              size: 24,
+              color: const Color.fromARGB(255, 128, 198, 255),
+            ),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group, size: 24, color: Colors.blue),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add, size: 24, color: Colors.blue),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment, size: 24, color: Colors.blue),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person, size: 24, color: Colors.blue),
+            label: '',
+          ),
+        ],
+      ),
     );
   }
 
@@ -124,13 +144,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Hello!', style: TextStyle(color: Colors.white, fontSize: 16)),
-            Text('John William',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold)),
-            Text('Search here',
-                style: TextStyle(color: Colors.white54, fontSize: 12)),
+            Text(
+              'John William',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'Search here',
+              style: TextStyle(color: Colors.white54, fontSize: 12),
+            ),
           ],
         ),
       ],
@@ -165,9 +190,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _currentPage = index;
             },
             children: [
-              _buildSliderItem('assets/GDG.jpg'),
-              _buildSliderItem('assets/amazon.jpeg'),
-              _buildSliderItem('assets/Meta.jpg'),
+              _buildSliderItem('assets/images/c1.jpg'),
+              _buildSliderItem('assets/images/c2.jpg'),
+              _buildSliderItem('assets/images/c3.jpg'),
             ],
           ),
         ),
@@ -176,7 +201,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           controller: _controller,
           count: 3,
           effect: WormEffect(
-            activeDotColor: Colors.tealAccent,
+            activeDotColor: Colors.blueAccent,
             dotHeight: 10,
             dotWidth: 10,
           ),
@@ -190,10 +215,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       margin: EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        image: DecorationImage(
-          image: AssetImage(imageUrl),
-          fit: BoxFit.cover,
-        ),
+        image: DecorationImage(image: AssetImage(imageUrl), fit: BoxFit.cover),
       ),
     );
   }
@@ -202,25 +224,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Community',
-            style: TextStyle(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Community',
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
-                fontWeight: FontWeight.bold)),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                // Add navigation logic here if needed
+              },
+              child: Text(
+                'View All',
+                style: TextStyle(
+                  color: Colors.blueAccent,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
         SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildCommunityItem('GDG', 'Community', Icons.group),
-            _buildCommunityItem('Amazon', 'Community', Icons.shopping_cart),
-            _buildCommunityItem('Meta', 'Community', Icons.group),
+            _buildCommunityItem('GDG', 'Community', 'assets/images/google.png'),
+            _buildCommunityItem(
+              'Amazon',
+              'Community',
+              'assets/images/google.png',
+            ),
+            _buildCommunityItem(
+              'Meta',
+              'Community',
+              'assets/images/google.png',
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildCommunityItem(String title, String subtitle, IconData icon) {
+  Widget _buildCommunityItem(String title, String subtitle, String imagePath) {
     return Container(
       width: 90,
       height: 90,
@@ -231,15 +282,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 30, color: Colors.black),
+          Image.asset(imagePath, height: 30, width: 30),
           SizedBox(height: 5),
-          Text(title,
-              style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold)),
-          Text(subtitle,
-              style: TextStyle(color: Colors.black54, fontSize: 10)),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(subtitle, style: TextStyle(color: Colors.black54, fontSize: 10)),
         ],
       ),
     );
@@ -259,17 +312,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             children: [
               CircleAvatar(
-                backgroundImage: AssetImage('assets/profile.png'),
+                backgroundImage: AssetImage('assets/images/person.png'),
                 radius: 20,
               ),
               SizedBox(width: 8),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Mikiyas Tamirat',
-                      style: TextStyle(color: Colors.white)),
-                  Text('Yesterday',
-                      style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  Text(
+                    'Mikiyas Tamirat',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  Text(
+                    'Yesterday',
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
                 ],
               ),
             ],
@@ -277,14 +334,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           SizedBox(height: 10),
           Text(
             'Most people prefer starting with Python since it is easy to implement and helps in understanding logic easily. '
-                'However, doing this can limit your understanding of core software engineering concepts. In my opinion, if you want to become great '
-                'at software engineering, try to start with low-level languages or those that are closer to the hardware.',
+            'However, doing this can limit your understanding of core software engineering concepts. In my opinion, if you want to become great '
+            'at software engineering, try to start with low-level languages or those that are closer to the hardware.',
             style: TextStyle(color: Colors.white70),
           ),
           SizedBox(height: 10),
           Container(
             height: 150,
-
             decoration: BoxDecoration(
               color: Colors.blue,
               borderRadius: BorderRadius.circular(16),
@@ -293,11 +349,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset(
-                    'assets/c.png', // Path to your C++ logo image
-                    height: 50,
-                    width: 50,
-                  ),
+                  Image.asset('assets/c.png', height: 50, width: 50),
                   SizedBox(width: 8),
                   Text(
                     'vs',
@@ -308,15 +360,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   SizedBox(width: 8),
-                  Image.asset(
-                    'assets/python.png', // Path to your Python logo image
-                    height: 50,
-                    width: 50,
-                  ),
+                  Image.asset('assets/python.png', height: 50, width: 50),
                 ],
               ),
             ),
-
           ),
           SizedBox(height: 8),
           Row(
@@ -338,10 +385,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.white24,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        tag,
-        style: TextStyle(color: Colors.white, fontSize: 12),
-      ),
+      child: Text(tag, style: TextStyle(color: Colors.white, fontSize: 12)),
     );
   }
 
