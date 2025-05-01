@@ -40,7 +40,7 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Placeholder for the image (405 * 228)
+            
             Container(
               width: 405,
               height: 228,
