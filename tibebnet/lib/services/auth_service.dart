@@ -6,18 +6,19 @@ import "package:http/http.dart" as http;
 class AuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
-  final String baseUrl = "https://example.com/api";
+  final String baseUrl = "http://localhost:3000/api";
+
   Future<bool> isLoggedIn() async {
-  final token = await _secureStorage.read(key: 'auth_token');
-  return token != null;
+    final token = await _secureStorage.read(key: 'auth_token');
+    return token != null;
   }
+
   Future<http.Response> registerUser({
     required String username,
     required String email,
     required String password,
-    required String confirmPassword,
   }) {
-    final url = Uri.parse("$baseUrl/register");
+    final url = Uri.parse("$baseUrl/auth/signup");
     return http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -25,41 +26,45 @@ class AuthService {
         "username": username,
         "email": email,
         "password": password,
-        "confirmPassword": confirmPassword,
       }),
     );
   }
-  Future <void> login({
+
+  // Corrected login method
+  Future<void> login({
     required String email,
     required String password,
   }) async {
-      try {
-    final response = await loginUser(email: email, password: password);
+    try {
+      final response = await loginUser(
+        email: email,
+        password: password,
+      );
 
-    if (response.statusCode == 200) {
-      final token = jsonDecode(response.body)['token'];
-      await _secureStorage.write(key: 'auth_token', value: token);
-      print("Login successful. JWT saved securely.");
-    } else {
-      print("Login failed: ${response.body}");
-      throw Exception("Invalid login credentials");
+      if (response.statusCode == 200) {
+        final token = jsonDecode(response.body)['token'];
+        await _secureStorage.write(key: 'auth_token', value: token);
+        print("Login successful. JWT saved securely.");
+      } else {
+        print("Login failed: ${response.body}");
+        throw Exception("Invalid login credentials");
+      }
+    } catch (e) {
+      print("Login error: $e");
+      throw Exception("Login failed");
     }
-  } catch (e) {
-    print("Login error: $e");
-    throw Exception("Login failed");
   }
-  }
+
   Future<http.Response> loginUser({
     required String email,
     required String password,
   }) {
-    final url = Uri.parse("$baseUrl/login");
+    final url = Uri.parse("$baseUrl/auth/login");
     return http.post(
       url,
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"email": email, "password": password}),
     );
-    
   }
 
   Future<void> signInWithGoogle() async {
@@ -77,7 +82,7 @@ class AuthService {
       );
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
-        final token = body['token']; 
+        final token = body['token'];
         await _secureStorage.write(key: 'auth_token', value: token);
         print("Backend login successful. JWT: $token");
         // Store token securely (e.g., SharedPreferences)
