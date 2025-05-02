@@ -40,6 +40,10 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   dotted_border: ^2.0.0
   image_picker: ^1.0.7
+  timeago: ^3.2.0
+  lottie: ^2.7.0
+  shared_preferences: ^2.0.15
+
 
 
 dev_dependencies:
@@ -73,6 +77,8 @@ flutter:
     - assets/images/c1.jpg
     - assets/images/c2.jpg
     - assets/images/c3.jpg
+    - assets/animations/success.json
+    - assets/images/header.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

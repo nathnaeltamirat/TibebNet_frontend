@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(scaffoldBackgroundColor: Color(0XFF201A30)),
-      home: CreateCommunityPage(),
+      home: LoginPage(),
     );
   }
 }

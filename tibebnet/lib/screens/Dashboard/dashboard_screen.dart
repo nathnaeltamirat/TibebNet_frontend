@@ -1,9 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:tibebnet/screens/post/PostPage.dart';
-
+import 'package:tibebnet/screens/community/AllCommunityScreen.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timeago/timeago.dart' as timeago;
+import 'package:tibebnet/screens/community_chat/CommunityChatPage.dart';
 class DashboardScreen extends StatefulWidget {
+  final String? successMessage;
+
+  const DashboardScreen({Key? key, this.successMessage}) : super(key: key);
+
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
 }
@@ -13,10 +22,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _currentPage = 0;
   Timer? _timer;
   int _selectedIndex = 0;
+  List<dynamic> _posts = [];
+  String username = "Loading...";
+  String profileImageUrl = "";
+  bool isLoading = true;
+  bool _isLoading = true;
+  List<dynamic> _communities = [];
 
   @override
   void initState() {
     super.initState();
+    _loadPosts();
+    _loadUserData();
+    _fetchCommunities();
     _timer = Timer.periodic(Duration(seconds: 3), (Timer timer) {
       _currentPage = (_currentPage + 1) % 3;
       _controller.animateToPage(
@@ -25,6 +43,93 @@ class _DashboardScreenState extends State<DashboardScreen> {
         curve: Curves.easeIn,
       );
     });
+  }
+
+  Future<void> _loadUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userId = prefs.getString('user_id');
+
+    if (userId != null) {
+      final response = await http.get(
+        Uri.parse('http://localhost:3000/api/auth/$userId'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final user = data['data']['user'];
+
+        setState(() {
+          username = user['username'] ?? 'Unknown User';
+          profileImageUrl = user['profileImageUrl'] ?? '';
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          username = 'Error loading user';
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchCommunities() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:3000/api/communities/'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          _communities = data['communities'];
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load communities');
+      }
+    } catch (e) {
+      print('Error fetching communities: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadPosts() async {
+    final response = await http.get(
+      Uri.parse('http://localhost:3000/api/posts/all'),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      List<dynamic> posts = data['data'];
+
+      final List<dynamic> enrichedPosts = await Future.wait(
+        posts.map((post) async {
+          final authorId = post['author']['id'];
+          final userRes = await http.get(
+            Uri.parse('http://localhost:3000/api/auth/$authorId'),
+          );
+
+          if (userRes.statusCode == 200) {
+            final userData = jsonDecode(userRes.body)['data']['user'];
+            post['authorDetails'] = {
+              'username': userData['username'],
+              'profileImageUrl': userData['profileImageUrl'] ?? '',
+            };
+          } else {
+            post['authorDetails'] = {
+              'username': 'Unknown',
+              'profileImageUrl': '',
+            };
+          }
+          return post;
+        }),
+      );
+
+      setState(() {
+        _posts = enrichedPosts;
+      });
+    }
   }
 
   @override
@@ -38,11 +143,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {
       _selectedIndex = index;
     });
-    // Handle navigation based on selected index
     if (_selectedIndex == 2) {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => Postpage()),
+        MaterialPageRoute(builder: (context) => PostPage()),
       );
     }
   }
@@ -60,6 +164,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (widget.successMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          widget.successMessage!,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
                     _buildHeader(),
                     _buildSpacing(),
                     _buildSearchBar(),
@@ -83,11 +200,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
+                final post = _posts[index];
+                final authorDetails = post['authorDetails'] ?? {};
+                final name = authorDetails['username'] ?? 'Unknown';
+                final profileImage = authorDetails['profileImageUrl'] ?? '';
+                final content = post['content'] ?? '';
+                final image = post['image'] ?? '';
+                final createdAt = post['createdAt'] ?? '';
+
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: _buildPostItem(),
+                  child: _buildDynamicPostItem(
+                    name,
+                    profileImage,
+                    content,
+                    image,
+                    createdAt,
+                  ),
                 );
-              }, childCount: 5),
+              }, childCount: _posts.length),
             ),
           ],
         ),
@@ -132,34 +263,92 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      children: [
-        CircleAvatar(
-          backgroundImage: AssetImage('assets/profile.png'),
-          radius: 30,
-        ),
-        SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Hello!', style: TextStyle(color: Colors.white, fontSize: 16)),
-            Text(
-              'John William',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+  Widget _buildDynamicPostItem(
+    String name,
+    String profileImage,
+    String content,
+    String imageUrl,
+    String createdAt,
+  ) {
+    DateTime postDate = DateTime.tryParse(createdAt) ?? DateTime.now();
+    String timeAgo = timeago.format(postDate);
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFF2A2141),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundImage:
+                    profileImage.isNotEmpty
+                        ? NetworkImage(profileImage)
+                        : AssetImage('assets/images/person.jpg')
+                            as ImageProvider,
+                radius: 20,
+              ),
+              SizedBox(width: 8),
+              Text(name, style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          SizedBox(height: 5),
+          Text(timeAgo, style: TextStyle(color: Colors.white54, fontSize: 12)),
+          SizedBox(height: 10),
+          Text(content, style: TextStyle(color: Colors.white70)),
+          SizedBox(height: 10),
+          if (imageUrl.isNotEmpty)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
               ),
             ),
-            Text(
-              'Search here',
-              style: TextStyle(color: Colors.white54, fontSize: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return isLoading
+        ? Center(child: CircularProgressIndicator())
+        : Row(
+          children: [
+            CircleAvatar(
+              backgroundImage:
+                  profileImageUrl.isNotEmpty
+                      ? NetworkImage(profileImageUrl)
+                      : AssetImage('assets/images/person.jpg') as ImageProvider,
+              radius: 30,
+            ),
+            SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hello!',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                Text(
+                  username,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
-    );
+        );
   }
 
   Widget _buildSearchBar() {
@@ -171,7 +360,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       child: TextField(
         decoration: InputDecoration(
-          hintText: 'Search learning paths',
+          hintText: 'Search posts/events',
           border: InputBorder.none,
           icon: Icon(Icons.search),
         ),
@@ -201,23 +390,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
           controller: _controller,
           count: 3,
           effect: WormEffect(
-            activeDotColor: Colors.blueAccent,
-            dotHeight: 10,
-            dotWidth: 10,
+            dotColor: Colors.white24,
+            activeDotColor: Colors.blue,
+            dotHeight: 8,
+            dotWidth: 8,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSliderItem(String imageUrl) {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        image: DecorationImage(image: AssetImage(imageUrl), fit: BoxFit.cover),
-      ),
+  Widget _buildSliderItem(String imagePath) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Image.asset(imagePath, fit: BoxFit.cover, width: double.infinity),
     );
+  }
+
+  Widget _buildSpacing() {
+    return SizedBox(height: 20);
   }
 
   Widget _buildCommunitySection() {
@@ -228,168 +419,89 @@ class _DashboardScreenState extends State<DashboardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Community',
+              'COMMUNITIES',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            GestureDetector(
-              onTap: () {
-                // Add navigation logic here if needed
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AllCommunitiesScreen(),
+                  ),
+                );
               },
               child: Text(
-                'View All',
-                style: TextStyle(
-                  color: Colors.blueAccent,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
+                'See all',
+                style: TextStyle(color: Colors.blueAccent),
               ),
             ),
           ],
         ),
         SizedBox(height: 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildCommunityItem('GDG', 'Community', 'assets/images/google.png'),
-            _buildCommunityItem(
-              'Amazon',
-              'Community',
-              'assets/images/google.png',
-            ),
-            _buildCommunityItem(
-              'Meta',
-              'Community',
-              'assets/images/google.png',
-            ),
-          ],
+Container(
+  height: 60,
+  child: _isLoading
+      ? Center(child: CircularProgressIndicator())
+      : ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: _communities.length,
+          itemBuilder: (context, index) {
+            final community = _communities[index];
+            return _buildCommunityChip(
+              community['name'],
+              community['id'],
+              community['image'],
+            );
+          },
         ),
+),
+
       ],
     );
   }
 
-  Widget _buildCommunityItem(String title, String subtitle, String imagePath) {
-    return Container(
-      width: 90,
-      height: 90,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(imagePath, height: 30, width: 30),
-          SizedBox(height: 5),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+Widget _buildCommunityChip(String label, int communityId, String imageUrl) {
+  return Padding(
+    padding: const EdgeInsets.only(right: 8.0),
+    child: GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CommunityChatPage(
+              communityId: communityId,
             ),
           ),
-          Text(subtitle, style: TextStyle(color: Colors.black54, fontSize: 10)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPostItem() {
-    return Container(
-      margin: EdgeInsets.only(bottom: 16),
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Color(0xFF2A2141),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundImage: AssetImage('assets/images/person.png'),
-                radius: 20,
-              ),
-              SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Mikiyas Tamirat',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  Text(
-                    'Yesterday',
-                    style: TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Most people prefer starting with Python since it is easy to implement and helps in understanding logic easily. '
-            'However, doing this can limit your understanding of core software engineering concepts. In my opinion, if you want to become great '
-            'at software engineering, try to start with low-level languages or those that are closer to the hardware.',
-            style: TextStyle(color: Colors.white70),
-          ),
-          SizedBox(height: 10),
-          Container(
-            height: 150,
-            decoration: BoxDecoration(
-              color: Colors.blue,
-              borderRadius: BorderRadius.circular(16),
+        );
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade600,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 14,
+              backgroundImage: NetworkImage(imageUrl),
+              backgroundColor: Colors.white,
             ),
-            child: Center(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset('assets/c.png', height: 50, width: 50),
-                  SizedBox(width: 8),
-                  Text(
-                    'vs',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Image.asset('assets/python.png', height: 50, width: 50),
-                ],
-              ),
+            SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(color: Colors.white),
             ),
-          ),
-          SizedBox(height: 8),
-          Row(
-            children: [
-              _buildTag('python'),
-              SizedBox(width: 8),
-              _buildTag('beginner'),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildTag(String tag) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white24,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(tag, style: TextStyle(color: Colors.white, fontSize: 12)),
-    );
-  }
-
-  Widget _buildSpacing([double height = 20]) {
-    return SizedBox(height: height);
-  }
 }

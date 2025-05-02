@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:tibebnet/screens/auth/signup_screen.dart';
 import 'dart:convert';
 import 'package:tibebnet/services/auth_service.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import  'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tibebnet/screens/Dashboard/dashboard_screen.dart';
 
 class LoginPage extends StatefulWidget {
@@ -188,39 +189,56 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    try {
-      final authService = AuthService();
-      // Corrected this line to use named arguments
-      final response = await authService.loginUser(
-        email: email,
-        password: password,
-      );
+    final authService = AuthService();
+// Corrected this line to use named arguments
+final response = await authService.loginUser(
+  email: email,
+  password: password,
+);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final json = jsonDecode(response.body);
-        final token = json['data']['token'];
+if (response.statusCode == 200 || response.statusCode == 201) {
+  try {
+    final json = jsonDecode(response.body);
+    final data = json['data'];
 
-        await const FlutterSecureStorage().write(
-          key: 'auth_token',
-          value: token,
+    if (data != null) {
+      final token = data['token'];
+
+      if (token != null) {
+        // Save the token in SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', token);
+
+        // Optionally, save user ID if needed
+        final userId = data['user']['id'];
+        await prefs.setString('user_id', userId.toString());
+
+        // Redirect to the Dashboard
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => DashboardScreen()),
         );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => DashboardScreen()),
-      );
       } else {
-        final json = jsonDecode(response.body);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(json['message'] ?? 'Login failed')),
-        );
+        throw Exception('Token missing in response');
       }
-    } catch (e) {
-      print("Login Error: $e");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Something went wrong")));
+    } else {
+      throw Exception('Invalid response format');
     }
+  } catch (e) {
+    print("Error parsing response: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Something went wrong with response")),
+    );
+  }
+} else {
+  // Handle errors based on response code and message
+  final json = jsonDecode(response.body);
+  final message = json['message'] ?? 'Login failed';
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message)),
+  );
+}
+
   }
 
   Widget _buildGoogleLoginButton() {
