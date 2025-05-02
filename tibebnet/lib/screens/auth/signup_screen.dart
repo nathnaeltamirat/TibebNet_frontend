@@ -3,6 +3,7 @@ import 'package:tibebnet/screens/auth/login_screen.dart';
 import 'dart:convert';
 import 'package:tibebnet/services/auth_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -12,6 +13,11 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email'],
+    clientId: '27858456749-offetu6aa8i67j82lkleporm4fgipasc.apps.googleusercontent.com', // Set your actual clientId here
+  );
+  
   late final TextEditingController _username;
   late final TextEditingController _password;
   late final TextEditingController _email;
@@ -38,7 +44,7 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1331), // Deep background color
+      backgroundColor: const Color(0xFF1A1331),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
@@ -166,7 +172,12 @@ class _SignUpPageState extends State<SignUpPage> {
 
           if (password != confirmPassword) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Passwords do not match", style:TextStyle(color: Colors.red))),
+              const SnackBar(
+                content: Text(
+                  "Passwords do not match",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
             );
             return;
           }
@@ -192,7 +203,9 @@ class _SignUpPageState extends State<SignUpPage> {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const LoginPage(successMessage: "Sign Up Successful!"),
+                  builder: (_) => const LoginPage(
+                    successMessage: "Sign Up Successful!",
+                  ),
                 ),
               );
             } else {
@@ -208,7 +221,6 @@ class _SignUpPageState extends State<SignUpPage> {
             );
           }
         },
-
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blueAccent,
           minimumSize: const Size(260, 60),
@@ -233,7 +245,61 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget _buildGoogleSignUpButton() {
     return Center(
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () async {
+          try {
+            // Start the sign-in process
+            GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+            if (googleUser != null) {
+              // Obtain the Google authentication token
+              GoogleSignInAuthentication googleAuth =
+                  await googleUser.authentication;
+
+              // Call your backend to verify the Google token
+              final authService = AuthService();
+              final response = await authService.googleSignUp(
+                idToken:googleAuth.idToken!,  // Send the ID token to your backend
+              );
+
+              if (response.statusCode == 200) {
+                final json = jsonDecode(response.body);
+                final token = json['data']['token'];
+
+                // Store the token securely
+                await const FlutterSecureStorage().write(
+                  key: 'auth_token',
+                  value: token,
+                );
+
+                print("Google Sign-Up successful");
+
+                // Navigate to the login page with a success message
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LoginPage(
+                      successMessage: "Google Sign-Up Successful!",
+                    ),
+                  ),
+                );
+              } else {
+                final json = jsonDecode(response.body);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(json['message'] ?? 'Google Sign-Up failed'),
+                  ),
+                );
+              }
+            }
+          } catch (e) {
+            print("Google Sign-Up Error: $e");
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Google sign-up failed. Please try again."),
+              ),
+            );
+          }
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           minimumSize: const Size(260, 55),
@@ -262,6 +328,7 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
+  // Login Redirect Button
   Widget _buildLoginRedirect(BuildContext context) {
     return Center(
       child: Row(

@@ -78,34 +78,24 @@ Future<void> login({
     );
   }
 
-  // Future<void> signInWithGoogle() async {
-  //   try {
-  //     final googleUser = await _googleSignIn.signIn();
-  //     if (googleUser == null) return;
-  //     final googleAuth = await googleUser.authentication;
-  //     final idToken = googleAuth.idToken;
-  //     if (idToken == null) return;
-  //     final url = Uri.parse("$baseUrl/google-signin");
-  //     final response = await http.post(
-  //       url,
-  //       headers: {"Content-Type": "application/json"},
-  //       body: jsonEncode({"idToken": idToken}),
-  //     );
-  //     if (response.statusCode == 200) {
-  //       final body = jsonDecode(response.body);
-  //       final token = body['token'];
+Future<http.Response> googleSignUp({
+  required String idToken,  // Accept idToken as a named parameter
+}) async {
+  try {
+    final url = Uri.parse("$baseUrl/google-signin");
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"idToken": idToken}),
+    );
+    
+    return response;
+  } catch (e) {
+    print("Google sign-up failed: $e");
+  }
+  return http.Response('Error', 500);  // Return an error response if something goes wrong
+}
 
-  //       // Save token in SharedPreferences
-  //       final prefs = await SharedPreferences.getInstance();
-  //       await prefs.setString('auth_token', token);
-  //       print("Google sign-in successful. JWT: $token");
-  //     } else {
-  //       throw Exception("Backend login failed: ${response.body}");
-  //     }
-  //   } catch (e) {
-  //     print("Google sign-in error: $e");
-  //   }
-  // }
 
   // Get user ID from SharedPreferences
   Future<String?> getUserId() async {
