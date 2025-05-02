@@ -3,7 +3,9 @@ import 'package:tibebnet/screens/post/PostPage.dart';
 import 'package:tibebnet/screens/Dashboard/dashboard_screen.dart';
 import 'package:tibebnet/services/community_service.dart';
 import 'package:tibebnet/screens/community/AllCommunityScreen.dart';
-
+import 'package:tibebnet/screens/profile/ProfilePage.dart';
+import 'package:tibebnet/screens/community_chat/CommunityChatPage.dart';
+import 'package:tibebnet/screens/eventspage/EventsPage.dart';
 class CreateCommunityPage extends StatefulWidget {
   const CreateCommunityPage({Key? key}) : super(key: key);
 
@@ -28,22 +30,33 @@ class _CreateCommunityPageState extends State<CreateCommunityPage> {
     setState(() {
       _selectedIndex = index;
     });
-    if (_selectedIndex == 0) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => DashboardScreen()),
-      );
-    }else if (_selectedIndex == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => AllCommunitiesScreen()),
-      );
-    } else if (_selectedIndex == 2) {
+    if (_selectedIndex == 2) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => PostPage()),
       );
-    } 
+    } else if (_selectedIndex == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProfilePage()),
+      );
+    } else if (_selectedIndex == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AllCommunitiesScreen()),
+      );
+    } else if (_selectedIndex == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => DashboardScreen()),
+      );
+    }
+    else if (_selectedIndex == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => EventsPage()),
+      );
+    }
   }
 
   @override

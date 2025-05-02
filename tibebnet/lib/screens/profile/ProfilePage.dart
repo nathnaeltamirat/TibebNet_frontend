@@ -1,205 +1,231 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tibebnet/screens/community_chat/CommunityChatPage.dart';
+import 'package:tibebnet/screens/post/PostPage.dart';
+import 'package:tibebnet/screens/community/AllCommunityScreen.dart';
+import 'package:tibebnet/screens/Dashboard/dashboard_screen.dart';
+import 'package:tibebnet/screens/editProfile/EditProfilePage.dart';
+import 'package:tibebnet/screens/eventspage/EventsPage.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  Map<String, dynamic>? user;
+  List<dynamic> myPosts = [];
+  bool isLoading = true;
+  int _selectedIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+    loadData();
+  }
+
+  Future<void> loadData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    final userResponse =
+        await http.get(Uri.parse('http://localhost:3000/api/auth/$userId'));
+    final postsResponse =
+        await http.get(Uri.parse('http://localhost:3000/api/posts/all'));
+
+    if (userResponse.statusCode == 200 && postsResponse.statusCode == 200) {
+      final userData = json.decode(userResponse.body)['data']['user'];
+      final allPosts = json.decode(postsResponse.body)['data'];
+
+      setState(() {
+        user = userData;
+        myPosts = allPosts.where((post) => post['author']['id'] == userId).toList();
+        isLoading = false;
+      });
+    } else {
+      setState(() => isLoading = false);
+    }
+  }
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    if (_selectedIndex == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => PostPage()),
+      );
+    } else if (_selectedIndex == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProfilePage()),
+      );
+    } else if (_selectedIndex == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AllCommunitiesScreen()),
+      );
+    } else if (_selectedIndex == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => DashboardScreen()),
+      );
+    }
+    else if (_selectedIndex == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => EventsPage()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 4,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        backgroundColor: Colors.black,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.add), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
+        elevation: 0,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        backgroundColor: Color(0xFF2A2141),
+        selectedItemColor: Color(0xFF007BFF),
+        unselectedItemColor: Colors.blueGrey,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
+        type: BottomNavigationBarType.fixed,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.home,
+              size: 24,
+              color: Colors.blue,
+            ),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group, size: 24, color: Colors.blue),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add, size: 24, color: Colors.blue),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment, size: 24, color: Colors.blue),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person, size: 24, color: const Color.fromARGB(255, 128, 198, 255)),
+            label: '',
+          ),
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    GradientText(
-                      text: "TibebNet",
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0CF2E0), Color(0xFF078C82)],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
+                    _buildHeader(),
+                    const SizedBox(height: 16),
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundImage: user!['profileImageUrl'] != ''
+                          ? NetworkImage(user!['profileImageUrl'])
+                          : const AssetImage('assets/profile.jpg') as ImageProvider,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      user!['username'],
                       style: const TextStyle(
-                        fontSize: 40,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user!['email'],
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    if (user!['about'] != null && user!['about'].toString().trim().isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          user!['about'],
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 14, color: Colors.white70),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => EditProfileScreen()),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Edit Profile'),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildStatsRow(),
+                    const SizedBox(height: 24),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "My Posts & Events",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...myPosts.map((post) => _buildPostCard(post)).toList(),
                   ],
                 ),
-              const SizedBox(height: 16),
-              const CircleAvatar(
-                radius: 50,
-                backgroundImage: AssetImage('assets/profile.jpg'),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'Nathnael Tamirat',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'he/him',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const Text(
-                'nathnaeltamirat3@gmail.com',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Edit Profile'),
-              ),
-              const SizedBox(height: 24),
-
-              GridView.count(
-                shrinkWrap: true,
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _buildStatBox(Icons.emoji_events, "1250", "Points Earned"),
-                  _buildStatBox(Icons.edit, "45", "Posts Verified"),
-                  _buildStatBox(Icons.favorite, "12", "Liked Posts"),
-                  _buildStatBox(Icons.groups, "3", "Communities"),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "About",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Passionate about software engineering and other tech fields",
-                style: TextStyle(fontSize: 14, color: Colors.white70),
-              ),
-              const SizedBox(height: 24),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text(
-                    "Liked Posts",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Text(
-                    "My Posts",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Post Card
-              Card(
-                color: Colors.grey[900],
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: const [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundImage: AssetImage('assets/mikiyas.jpg'),
-                          ),
-                          SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Mikiyas Tamirat",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              Text(
-                                "Yesterday",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        "Most people prefer starting with Python since it is easy to implement and helps in understanding logic easily. However, doing this can limit your understanding of core software engineering concepts. In my opinion, if you want to become great at software engineering, try to start with low-level languages or those that are closer to the hardware.",
-                        style: TextStyle(fontSize: 10, color: Colors.white70),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          _buildTag("python"),
-                          const SizedBox(width: 12),
-                          _buildTag("beginner"),
-                          const Spacer(),
-                          const Icon(Icons.favorite_border, color: Colors.white70),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            ],
-          ),
-        ),
       ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: [
+        Text(
+       "TibebNet",
+
+          style: const TextStyle(fontSize: 33, fontWeight: FontWeight.bold, color: Colors.blue),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        _buildStatBox(Icons.emoji_events, user!['point'].toString(), "Points"),
+        _buildStatBox(Icons.check_circle, myPosts.length.toString(), "Verified Posts"),
+      ],
     );
   }
 
   Widget _buildStatBox(IconData icon, String value, String label) {
     return Container(
+      width: 150,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[850],
@@ -212,21 +238,50 @@ class ProfilePage extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
+          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
     );
   }
+
+Widget _buildPostCard(Map<String, dynamic> post) {
+  return Card(
+    color: Colors.grey[900],
+    margin: const EdgeInsets.symmetric(vertical: 8),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    child: Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (post['image'] != null && post['image'] != '')
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                post['image'],
+                width: double.infinity,
+                height: 200,
+                fit: BoxFit.cover,
+              ),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            post['content'],
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _buildTag("post"),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 
   Widget _buildTag(String label) {
     return Container(
@@ -243,27 +298,5 @@ class ProfilePage extends StatelessWidget {
   }
 }
 
-class GradientText extends StatelessWidget {
-  final String text;
-  final TextStyle style;
-  final Gradient gradient;
 
-  const GradientText({
-    Key? key,
-    required this.text,
-    required this.gradient,
-    this.style = const TextStyle(),
-  }) : super(key: key);
 
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      shaderCallback:
-          (bounds) => gradient.createShader(
-            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
-          ),
-      blendMode: BlendMode.srcIn,
-      child: Text(text, style: style),
-    );
-  }
-}

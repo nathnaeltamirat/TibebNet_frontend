@@ -78,7 +78,10 @@ flutter:
     - assets/images/c2.jpg
     - assets/images/c3.jpg
     - assets/animations/success.json
+    - assets/animations/no_messages.json
+    - assets/animations/configured.json
     - assets/images/header.png
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

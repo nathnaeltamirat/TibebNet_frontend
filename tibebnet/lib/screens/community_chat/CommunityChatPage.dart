@@ -7,6 +7,10 @@ import 'package:tibebnet/screens/Dashboard/dashboard_screen.dart';
 import 'package:tibebnet/services/auth_service.dart';
 import 'package:tibebnet/screens/post/PostPage.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:tibebnet/screens/profile/ProfilePage.dart';
+import 'package:tibebnet/screens/community/AllCommunityScreen.dart';
+import 'package:lottie/lottie.dart';
+import 'package:tibebnet/screens/community_chat/CommunityChatPage.dart';
 class CommunityChatPage extends StatefulWidget {
   final int communityId;
 
@@ -16,55 +20,101 @@ class CommunityChatPage extends StatefulWidget {
   @override
   State<CommunityChatPage> createState() => _CommunityChatPageState();
 }
+
 class _CommunityChatPageState extends State<CommunityChatPage> {
   final ApiService apiService = ApiService();
   final TextEditingController _controller = TextEditingController();
   Timer? _refreshTimer;
   int? _selectedIndex;
   List<dynamic> messages = [];
+  Map<String, dynamic> userProfiles = {};
+
   Map<String, dynamic>? communityData;
-  String? userId;  // Declare userId here
+  String? userId;
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
     super.dispose();
   }
-
-Future<void> _initializeUserId() async {
-  try {
-    // Simulating async call to get user ID
-    var userId = await AuthService().getUserId();
+  void _onItemTapped(int index) {
     setState(() {
-      // Update the state here
-      this.userId = userId;
+      _selectedIndex = index;
     });
-  } catch (e) {
-    print("Error initializing user ID: $e");
+    if (_selectedIndex == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => PostPage()),
+      );
+    } else if (_selectedIndex == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProfilePage()),
+      );
+    } else if (_selectedIndex == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AllCommunitiesScreen()),
+      );
+    } else if (_selectedIndex == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => DashboardScreen()),
+      );
+    }
+    else if (_selectedIndex == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AllCommunitiesScreen()),
+      );
+    }
   }
-}
+
+  Future<Map<String, dynamic>> _getUserProfile(String userId) async {
+    if (userProfiles.containsKey(userId)) return userProfiles[userId]!;
+
+    try {
+      final response = await http.get(
+        Uri.parse('http://localhost:3000/api/auth/$userId'),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final user = data['data']['user']; // Correct access to user data
+        userProfiles[userId] = user;
+        return user;
+      } else {
+        print('Failed to fetch user $userId: ${response.statusCode}');
+        return {};
+      }
+    } catch (e) {
+      print('Error fetching user $userId: $e');
+      return {};
+    }
+  }
+
+  Future<void> _initializeUserId() async {
+    try {
+      // Replace with your actual auth service call
+      var userId = await AuthService().getUserId();
+      setState(() {
+        this.userId = userId;
+      });
+    } catch (e) {
+      print("Error initializing user ID: $e");
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchCommunityData();
     _fetchMessages();
-    _initializeUserId();  // Initialize userId on start
-  }
+    _initializeUserId();
 
-  void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
-    if (index == 0) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      );
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const PostPage()),
-      );
-    }
+    // Set up periodic refresh
+    _refreshTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+      _fetchMessages();
+    });
   }
 
   Future<void> _fetchCommunityData() async {
@@ -75,40 +125,39 @@ Future<void> _initializeUserId() async {
         ),
       );
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+        final data = json.decode(response.body);
         setState(() => communityData = data['community']);
       } else {
-        print('Failed to load community data');
+        print('Failed to load community data: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching community data: $e');
     }
   }
 
-  bool _isFetchingMessages = false;
-
   Future<void> _fetchMessages() async {
-    if (_isFetchingMessages) return; // Prevent overlapping fetches
-    _isFetchingMessages = true;
-
     try {
-      final fetchedMessages = await apiService.fetchMessages(
-        widget.communityId,
+      final response = await http.get(
+        Uri.parse('http://localhost:3000/api/messages/${widget.communityId}'),
       );
-      setState(
-        () => messages = fetchedMessages,
-      ); // Update the UI with the fetched messages
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() => messages = List.from(data));
+      } else {
+        print('Failed to load messages: ${response.statusCode}');
+      }
     } catch (e) {
       print('Error fetching messages: $e');
-    } finally {
-      _isFetchingMessages = false;
     }
   }
+bool _isFetchingMessages = false;
+
+
   // Add a check to send message only if userId is available
   void _sendMessage(String content) async {
     if (userId == null) {
       print("User ID is not available.");
-      return;  // Do not send message if user ID is not available
+      return; // Do not send message if user ID is not available
     }
     print("Sending message: $content");
     print("User ID: $userId");
@@ -131,6 +180,8 @@ Future<void> _initializeUserId() async {
       body: SafeArea(
         child: Column(
           children: [
+            // Header and community info...
+            // (Keep your existing UI code here)
             // App header
             const Padding(
               padding: EdgeInsets.all(16.0),
@@ -197,44 +248,40 @@ Future<void> _initializeUserId() async {
               ),
             ),
 
-            // Messages
-            Expanded(
-              child:
-                  messages.isEmpty
-                      ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.chat_bubble_outline,
-                              color: Colors.grey,
-                              size: 40,
-                            ),
-                            Text(
-                              "No messages yet",
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                      : ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        itemCount: messages.length,
-                        itemBuilder: (context, index) {
-                          final message = messages[index];
-                          return chatBubble(message);
-                        },
-                      ),
-            ),
 
-            // Input field
+            // Messages List
+          Expanded(
+            child: messages.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          height: 200,
+                          child: Lottie.asset('assets/animations/no_messages.json'),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "No messages yet!",
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "Be the first to say something 🎉",
+                          style: TextStyle(color: Colors.blueAccent, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final message = messages[index];
+                      return _buildMessageBubble(message);
+                    },
+                  ),
+          ),
+
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               color: const Color(0xFF2A2141),
@@ -265,21 +312,23 @@ Future<void> _initializeUserId() async {
                       color: Colors.blueAccent,
                       size: 28,
                     ),
-                    onPressed: userId == null
-                        ? null  // Disable button if userId is not available
-                        : () {
-                            final text = _controller.text;
-                            if (text.isNotEmpty) _sendMessage(text);
-                          },
+                    onPressed:
+                        userId == null
+                            ? null // Disable button if userId is not available
+                            : () {
+                              final text = _controller.text;
+                              if (text.isNotEmpty) _sendMessage(text);
+                            },
                   ),
                 ],
+
               ),
             ),
           ],
         ),
+       
       ),
-      // Bottom Nav Bar
-      bottomNavigationBar: BottomNavigationBar(
+       bottomNavigationBar: BottomNavigationBar(
         onTap: _onItemTapped,
         backgroundColor: const Color(0xFF2A2141),
         selectedItemColor: const Color(0xFF007BFF),
@@ -316,65 +365,43 @@ Future<void> _initializeUserId() async {
       ),
     );
   }
-}
 
+  Widget _buildMessageBubble(Map<String, dynamic> message) {
+    final sender =
+        message['senderId'] is String
+            ? {'id': message['senderId']}
+            : message['senderId'];
+    final senderId = sender['id'];
+    final senderUsername = sender['username'] ?? 'Unknown';
+    final content = message['content'] ?? '';
+    final createdAt = DateTime.tryParse(message['createdAt']) ?? DateTime.now();
 
-  Widget chatBubble(dynamic message) {
-    DateTime? createdAt = DateTime.tryParse(message['createdAt']);
-    String formattedTime =
-        createdAt != null ? timeago.format(createdAt) : 'Unknown Time';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Image.network(
-              "http://localhost:3000/api/users/${message['senderId']}/image",
-              width: 40,
-              height: 40,
-              fit: BoxFit.cover,
-              errorBuilder:
-                  (_, __, ___) =>
-                      const Icon(Icons.account_circle, color: Colors.grey),
-            ),
+    return FutureBuilder(
+      future: _getUserProfile(senderId),
+      builder: (context, snapshot) {
+        final profile = snapshot.data ?? {};
+        final profileImage = profile['profileImageUrl'] ?? '';
+
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundImage:
+                profileImage.isNotEmpty
+                    ? NetworkImage(profileImage)
+                    : AssetImage('assets/images/person.jpg') as ImageProvider,
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: const Color(0xFF32425C),
+          title: Text(senderUsername, style: TextStyle(color: Colors.white)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(content, style: TextStyle(color: Colors.white70)),
+              Text(
+                timeago.format(createdAt),
+                style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    message['senderUsername'] ?? 'Unknown User', // Handle null
-                    style: const TextStyle(
-                      color: Colors.lightBlueAccent,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    formattedTime,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    message['content'] ?? 'No Content', // Handle null
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
-
+}

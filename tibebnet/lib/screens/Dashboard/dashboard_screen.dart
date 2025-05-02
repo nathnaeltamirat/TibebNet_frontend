@@ -2,12 +2,16 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:tibebnet/screens/eventspage/EventsPage.dart';
 import 'package:tibebnet/screens/post/PostPage.dart';
 import 'package:tibebnet/screens/community/AllCommunityScreen.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:tibebnet/screens/community_chat/CommunityChatPage.dart';
+import 'package:tibebnet/screens/eventspage/EventsPage.dart';
+import 'package:tibebnet/screens/profile/ProfilePage.dart';
+
 class DashboardScreen extends StatefulWidget {
   final String? successMessage;
 
@@ -18,6 +22,9 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  TextEditingController _searchController = TextEditingController();
+String _searchQuery = '';
+
   PageController _controller = PageController();
   int _currentPage = 0;
   Timer? _timer;
@@ -148,11 +155,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
         context,
         MaterialPageRoute(builder: (context) => PostPage()),
       );
+    } else if (_selectedIndex == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProfilePage()),
+      );
+    } else if (_selectedIndex == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AllCommunitiesScreen()),
+      );
+    } else if (_selectedIndex == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => DashboardScreen()),
+      );
+    }
+    else if (_selectedIndex == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => EventsPage()),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+      final filteredPosts = _searchQuery.isEmpty
+      ? _posts
+      : _posts.where((post) {
+          final content = post['content']?.toLowerCase() ?? '';
+          final author = post['authorDetails']?['username']?.toLowerCase() ?? '';
+          return content.contains(_searchQuery) || author.contains(_searchQuery);
+        }).toList();
     return Scaffold(
       backgroundColor: Color(0xFF1B113A),
       body: SafeArea(
@@ -186,7 +221,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     _buildCommunitySection(),
                     _buildSpacing(),
                     Text(
-                      'POSTS',
+                      'POSTS AND EVENTS',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -198,28 +233,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final post = _posts[index];
-                final authorDetails = post['authorDetails'] ?? {};
-                final name = authorDetails['username'] ?? 'Unknown';
-                final profileImage = authorDetails['profileImageUrl'] ?? '';
-                final content = post['content'] ?? '';
-                final image = post['image'] ?? '';
-                final createdAt = post['createdAt'] ?? '';
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: _buildDynamicPostItem(
-                    name,
-                    profileImage,
-                    content,
-                    image,
-                    createdAt,
-                  ),
-                );
-              }, childCount: _posts.length),
+
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final post = filteredPosts[index];
+                  final authorDetails = post['authorDetails'] ?? {};
+                  final name = authorDetails['username'] ?? 'Unknown';
+                  final profileImage = authorDetails['profileImageUrl'] ?? '';
+                  final content = post['content'] ?? '';
+                  final image = post['image'] ?? '';
+                  final createdAt = post['createdAt'] ?? '';
+
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: _buildDynamicPostItem(
+                      name,
+                      profileImage,
+                      content,
+                      image,
+                      createdAt,
+                    ),
+                  );
+                },
+                childCount: filteredPosts.length,
+              ),
             ),
+
           ],
         ),
       ),
@@ -351,22 +392,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+ Widget _buildSearchBar() {
+  return Container(
+    padding: EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(30),
+    ),
+    child: TextField(
+      controller: _searchController,
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value.toLowerCase();
+        });
+      },
+      decoration: InputDecoration(
+        hintText: 'Search posts/events',
+        border: InputBorder.none,
+        icon: Icon(Icons.search),
+        suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: Icon(Icons.clear),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+              )
+            : null,
       ),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Search posts/events',
-          border: InputBorder.none,
-          icon: Icon(Icons.search),
-        ),
-      ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildImageSlider() {
     return Column(
@@ -443,65 +502,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         SizedBox(height: 10),
-Container(
-  height: 60,
-  child: _isLoading
-      ? Center(child: CircularProgressIndicator())
-      : ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: _communities.length,
-          itemBuilder: (context, index) {
-            final community = _communities[index];
-            return _buildCommunityChip(
-              community['name'],
-              community['id'],
-              community['image'],
-            );
-          },
+        Container(
+          height: 60,
+          child:
+              _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _communities.length,
+                    itemBuilder: (context, index) {
+                      final community = _communities[index];
+                      return _buildCommunityChip(
+                        community['name'],
+                        community['id'],
+                        community['image'],
+                      );
+                    },
+                  ),
         ),
-),
-
       ],
     );
   }
 
-Widget _buildCommunityChip(String label, int communityId, String imageUrl) {
-  return Padding(
-    padding: const EdgeInsets.only(right: 8.0),
-    child: GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CommunityChatPage(
-              communityId: communityId,
+  Widget _buildCommunityChip(String label, int communityId, String imageUrl) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CommunityChatPage(communityId: communityId),
             ),
+          );
+        },
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade600,
+            borderRadius: BorderRadius.circular(20),
           ),
-        );
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.blue.shade600,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 14,
-              backgroundImage: NetworkImage(imageUrl),
-              backgroundColor: Colors.white,
-            ),
-            SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(color: Colors.white),
-            ),
-          ],
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundImage: NetworkImage(imageUrl),
+                backgroundColor: Colors.white,
+              ),
+              SizedBox(width: 8),
+              Text(label, style: TextStyle(color: Colors.white)),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 }

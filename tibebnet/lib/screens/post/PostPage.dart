@@ -6,7 +6,11 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:lottie/lottie.dart';
-
+import 'package:tibebnet/screens/community/AllCommunityScreen.dart';
+import 'package:tibebnet/screens/profile/ProfilePage.dart';
+import 'package:tibebnet/screens/community_chat/CommunityChatPage.dart';
+import 'package:tibebnet/screens/community/CreateCommunityPage.dart';
+import 'package:tibebnet/screens/eventspage/EventsPage.dart';
 const Color primaryBlue = Color(0xFF3B82F6);
 const Color backgroundColor = Color(0xFF1E293B);
 const Color containerColor = Color(0xFF334155);
@@ -37,11 +41,34 @@ class _PostPageState extends State<PostPage> {
   }
 
   void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
-    if (index == 0) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    if (_selectedIndex == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => PostPage()),
+      );
+    } else if (_selectedIndex == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => ProfilePage()),
+      );
+    } else if (_selectedIndex == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AllCommunitiesScreen()),
+      );
+    } else if (_selectedIndex == 0) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => DashboardScreen()),
+      );
+    }
+    else if (_selectedIndex == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => EventsPage()),
       );
     }
   }
@@ -140,21 +167,41 @@ class _PostPageState extends State<PostPage> {
           gradient: LinearGradient(colors: [primaryBlue, Colors.blueAccent]),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
+            bottomNavigationBar: BottomNavigationBar(
+        elevation: 0,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        backgroundColor: const Color(0xFF2A2141),
-        selectedItemColor: const Color(0xFF007BFF),
+        backgroundColor: Color(0xFF2A2141),
+        selectedItemColor: Color(0xFF007BFF),
         unselectedItemColor: Colors.blueGrey,
         showSelectedLabels: false,
         showUnselectedLabels: false,
         type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.group), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.add), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: ''),
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(
+              Icons.home,
+              size: 24,
+              color: Colors.blue,
+            ),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group, size: 24, color: Colors.blue),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add, size: 24, color: const Color.fromARGB(255, 128, 198, 255)),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment, size: 24, color: Colors.blue),
+            label: '',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person, size: 24, color: Colors.blue),
+            label: '',
+          ),
         ],
       ),
       body: SingleChildScrollView(
