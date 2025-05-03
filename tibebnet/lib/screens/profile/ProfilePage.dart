@@ -8,6 +8,7 @@ import 'package:tibebnet/screens/community/AllCommunityScreen.dart';
 import 'package:tibebnet/screens/Dashboard/dashboard_screen.dart';
 import 'package:tibebnet/screens/editProfile/EditProfilePage.dart';
 import 'package:tibebnet/screens/eventspage/EventsPage.dart';
+import 'package:tibebnet/screens/auth/login_screen.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -31,10 +32,12 @@ class _ProfilePageState extends State<ProfilePage> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
 
-    final userResponse =
-        await http.get(Uri.parse('http://localhost:3000/api/auth/$userId'));
-    final postsResponse =
-        await http.get(Uri.parse('http://localhost:3000/api/posts/all'));
+    final userResponse = await http.get(
+      Uri.parse('http://localhost:3000/api/auth/$userId'),
+    );
+    final postsResponse = await http.get(
+      Uri.parse('http://localhost:3000/api/posts/all'),
+    );
 
     if (userResponse.statusCode == 200 && postsResponse.statusCode == 200) {
       final userData = json.decode(userResponse.body)['data']['user'];
@@ -42,13 +45,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
       setState(() {
         user = userData;
-        myPosts = allPosts.where((post) => post['author']['id'] == userId).toList();
+        myPosts =
+            allPosts.where((post) => post['author']['id'] == userId).toList();
         isLoading = false;
       });
     } else {
       setState(() => isLoading = false);
     }
   }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -73,8 +78,7 @@ class _ProfilePageState extends State<ProfilePage> {
         context,
         MaterialPageRoute(builder: (context) => DashboardScreen()),
       );
-    }
-    else if (_selectedIndex == 3) {
+    } else if (_selectedIndex == 3) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => EventsPage()),
@@ -98,11 +102,7 @@ class _ProfilePageState extends State<ProfilePage> {
         type: BottomNavigationBarType.fixed,
         items: [
           BottomNavigationBarItem(
-            icon: Icon(
-              Icons.home,
-              size: 24,
-              color: Colors.blue,
-            ),
+            icon: Icon(Icons.home, size: 24, color: Colors.blue),
             label: '',
           ),
           BottomNavigationBarItem(
@@ -118,84 +118,125 @@ class _ProfilePageState extends State<ProfilePage> {
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person, size: 24, color: const Color.fromARGB(255, 128, 198, 255)),
+            icon: Icon(
+              Icons.person,
+              size: 24,
+              color: const Color.fromARGB(255, 128, 198, 255),
+            ),
             label: '',
           ),
         ],
       ),
       body: SafeArea(
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.blue))
-            : SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 16),
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundImage: user!['profileImageUrl'] != ''
-                          ? NetworkImage(user!['profileImageUrl'])
-                          : const AssetImage('assets/profile.jpg') as ImageProvider,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      user!['username'],
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+        child:
+            isLoading
+                ? const Center(
+                  child: CircularProgressIndicator(color: Colors.blue),
+                )
+                : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _buildHeader(),
+                      const SizedBox(height: 16),
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundImage:
+                            user!['profileImageUrl'] != ''
+                                ? NetworkImage(user!['profileImageUrl'])
+                                : const AssetImage('assets/profile.jpg')
+                                    as ImageProvider,
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user!['email'],
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                    if (user!['about'] != null && user!['about'].toString().trim().isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Text(
-                          user!['about'],
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 14, color: Colors.white70),
-                        ),
-                      ),
-                    const SizedBox(height: 8),
-
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => EditProfileScreen()),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Edit Profile'),
-                    ),
-                    const SizedBox(height: 24),
-                    _buildStatsRow(),
-                    const SizedBox(height: 24),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        "My Posts & Events",
-                        style: TextStyle(
-                          fontSize: 20,
+                      const SizedBox(height: 12),
+                      Text(
+                        user!['username'],
+                        style: const TextStyle(
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...myPosts.map((post) => _buildPostCard(post)).toList(),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        user!['email'],
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      if (user!['about'] != null &&
+                          user!['about'].toString().trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            user!['about'],
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 8),
+
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditProfileScreen(),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Edit Profile'),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        onPressed: () async {
+                          SharedPreferences prefs =
+                              await SharedPreferences.getInstance();
+                          await prefs
+                              .clear(); // Clears all user data (like user_id)
+
+                          // Navigate to login screen (replace with your actual login screen widget)
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LoginPage(),
+                            ), // <-- Change this if needed
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Logout'),
+                      ),
+
+                      const SizedBox(height: 24),
+                      _buildStatsRow(),
+                      const SizedBox(height: 24),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "My Posts & Events",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ...myPosts.map((post) => _buildPostCard(post)).toList(),
+                    ],
+                  ),
                 ),
-              ),
       ),
     );
   }
@@ -205,9 +246,13 @@ class _ProfilePageState extends State<ProfilePage> {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Text(
-       "TibebNet",
+          "TibebNet",
 
-          style: const TextStyle(fontSize: 33, fontWeight: FontWeight.bold, color: Colors.blue),
+          style: const TextStyle(
+            fontSize: 33,
+            fontWeight: FontWeight.bold,
+            color: Colors.blue,
+          ),
         ),
       ],
     );
@@ -218,7 +263,11 @@ class _ProfilePageState extends State<ProfilePage> {
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _buildStatBox(Icons.emoji_events, user!['point'].toString(), "Points"),
-        _buildStatBox(Icons.check_circle, myPosts.length.toString(), "Verified Posts"),
+        _buildStatBox(
+          Icons.check_circle,
+          myPosts.length.toString(),
+          "Verified Posts",
+        ),
       ],
     );
   }
@@ -238,7 +287,11 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
           Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
@@ -246,57 +299,35 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-Widget _buildPostCard(Map<String, dynamic> post) {
-  return Card(
-    color: Colors.grey[900],
-    margin: const EdgeInsets.symmetric(vertical: 8),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: Padding(
-      padding: const EdgeInsets.all(12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (post['image'] != null && post['image'] != '')
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                post['image'],
-                width: double.infinity,
-                height: 200,
-                fit: BoxFit.cover,
+  Widget _buildPostCard(Map<String, dynamic> post) {
+    return Card(
+      color: Colors.grey[900],
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (post['image'] != null && post['image'] != '')
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  post['image'],
+                  width: double.infinity,
+                  height: 200,
+                  fit: BoxFit.cover,
+                ),
               ),
+            const SizedBox(height: 8),
+            Text(
+              post['content'],
+              style: const TextStyle(fontSize: 12, color: Colors.white70),
             ),
-          const SizedBox(height: 8),
-          Text(
-            post['content'],
-            style: const TextStyle(fontSize: 12, color: Colors.white70),
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _buildTag("post"),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-
-  Widget _buildTag(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: Colors.blue[100],
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 10, color: Colors.black),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }
 }
-
-
-

@@ -157,7 +157,7 @@ class _EventsPageState extends State<EventsPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-    
+        
         centerTitle: false,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
@@ -165,7 +165,8 @@ class _EventsPageState extends State<EventsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Column(
               children: [
-                
+                Text("Events", style: TextStyle(color: Colors.blue, fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(

@@ -305,15 +305,15 @@ floatingActionButton: FloatingActionButton(
       ),
     );
   },
-  child: AnimatedSwitcher(
-    duration: Duration(seconds: 1),
-    child: Icon(
-      Icons.devices, // AI-related icon (can be replaced with others like Icons.computer or Icons.android)
-      key: ValueKey<int>(1), // Added a key to distinguish the widget for animation
-      size: 50,
-      color: Colors.white, // Icon color
-    ),
-  ),
+  child:  AnimatedSwitcher(
+          duration: Duration(seconds: 3),
+          child: Image.asset(
+            'assets/images/ai.png', // Your AI icon
+            key: ValueKey<int>(1), // Added a key to distinguish the widget for animation
+            width: 55, // Icon size
+            height: 55, // Icon size
+          ),
+        ),
   backgroundColor: Colors.blue, // Button background color
 ),
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tibebnet/screens/AISafetyInfoScreen.dart';
+import 'package:lottie/lottie.dart';
+
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
 
@@ -15,19 +17,20 @@ class _IntroScreenState extends State<IntroScreen> {
     {
       'title': 'Welcome to TIBEBNET',
       'subtitle': 'Connect with communities that understand your journey.',
-      'image': 'assets/images/intro1.png',
+      'animation': 'assets/animations/intro1.json',
     },
     {
       'title': 'Share Freely',
       'subtitle': 'Post stories anonymously or as yourself in safe, inclusive spaces.',
-      'image': 'assets/images/intro2.png',
+      'animation': 'assets/animations/intro2.json',
     },
     {
       'title': 'Find Support',
       'subtitle': 'Chat, or just listen — your voice matters here.',
-      'image': 'assets/images/intro3.png',
+      'animation': 'assets/animations/intro3.json',
     },
   ];
+
 
   void _onPageChanged(int index) {
     setState(() {
@@ -67,13 +70,20 @@ class _IntroScreenState extends State<IntroScreen> {
               itemBuilder: (context, index) {
                 final page = _pages[index];
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 40,
+                  ),
                   child: Column(
                     children: [
                       Expanded(
-                        child: Image.asset(
-                          page['image']!,
-                          fit: BoxFit.contain,
+                        child: Expanded(
+                          child: Lottie.asset(
+                            page['animation']!,
+                            fit: BoxFit.contain,
+                            repeat: true,
+                            animate: true,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -116,12 +126,14 @@ class _IntroScreenState extends State<IntroScreen> {
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const AISafetyInfoScreen()),
-                    );
-                  },
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AISafetyInfoScreen(),
+                    ),
+                  );
+                },
 
                 child: const Text(
                   "Get Started",

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 class AuthService {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final String baseUrl = "http://localhost:3000/api";
+  final String baseUrl = "http://192.168.1.10:3000/api";
 
   Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
