@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:tibebnet/screens/community_chat/CommunityChatPage.dart';
-import 'package:tibebnet/screens/eventspage/EventsPage.dart';
+import 'package:tibebnet/screens/DynamicAiPage.dart';
 import 'package:tibebnet/screens/profile/ProfilePage.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -23,8 +23,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   TextEditingController _searchController = TextEditingController();
-String _searchQuery = '';
-
+  String _searchQuery = '';
   PageController _controller = PageController();
   int _currentPage = 0;
   Timer? _timer;
@@ -170,8 +169,7 @@ String _searchQuery = '';
         context,
         MaterialPageRoute(builder: (context) => DashboardScreen()),
       );
-    }
-    else if (_selectedIndex == 3) {
+    } else if (_selectedIndex == 3) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => EventsPage()),
@@ -181,13 +179,16 @@ String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
-      final filteredPosts = _searchQuery.isEmpty
-      ? _posts
-      : _posts.where((post) {
-          final content = post['content']?.toLowerCase() ?? '';
-          final author = post['authorDetails']?['username']?.toLowerCase() ?? '';
-          return content.contains(_searchQuery) || author.contains(_searchQuery);
-        }).toList();
+    final filteredPosts =
+        _searchQuery.isEmpty
+            ? _posts
+            : _posts.where((post) {
+              final content = post['content']?.toLowerCase() ?? '';
+              final author =
+                  post['authorDetails']?['username']?.toLowerCase() ?? '';
+              return content.contains(_searchQuery) ||
+                  author.contains(_searchQuery);
+            }).toList();
     return Scaffold(
       backgroundColor: Color(0xFF1B113A),
       body: SafeArea(
@@ -233,34 +234,28 @@ String _searchQuery = '';
                 ),
               ),
             ),
-
-
             SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final post = filteredPosts[index];
-                  final authorDetails = post['authorDetails'] ?? {};
-                  final name = authorDetails['username'] ?? 'Unknown';
-                  final profileImage = authorDetails['profileImageUrl'] ?? '';
-                  final content = post['content'] ?? '';
-                  final image = post['image'] ?? '';
-                  final createdAt = post['createdAt'] ?? '';
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final post = filteredPosts[index];
+                final authorDetails = post['authorDetails'] ?? {};
+                final name = authorDetails['username'] ?? 'Unknown';
+                final profileImage = authorDetails['profileImageUrl'] ?? '';
+                final content = post['content'] ?? '';
+                final image = post['image'] ?? '';
+                final createdAt = post['createdAt'] ?? '';
 
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: _buildDynamicPostItem(
-                      name,
-                      profileImage,
-                      content,
-                      image,
-                      createdAt,
-                    ),
-                  );
-                },
-                childCount: filteredPosts.length,
-              ),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: _buildDynamicPostItem(
+                    name,
+                    profileImage,
+                    content,
+                    image,
+                    createdAt,
+                  ),
+                );
+              }, childCount: filteredPosts.length),
             ),
-
           ],
         ),
       ),
@@ -301,6 +296,28 @@ String _searchQuery = '';
           ),
         ],
       ),
+floatingActionButton: FloatingActionButton(
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(),
+      ),
+    );
+  },
+  child: AnimatedSwitcher(
+    duration: Duration(seconds: 1),
+    child: Icon(
+      Icons.devices, // AI-related icon (can be replaced with others like Icons.computer or Icons.android)
+      key: ValueKey<int>(1), // Added a key to distinguish the widget for animation
+      size: 50,
+      color: Colors.white, // Icon color
+    ),
+  ),
+  backgroundColor: Colors.blue, // Button background color
+),
+
+
     );
   }
 
@@ -392,40 +409,40 @@ String _searchQuery = '';
         );
   }
 
- Widget _buildSearchBar() {
-  return Container(
-    padding: EdgeInsets.symmetric(horizontal: 16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(30),
-    ),
-    child: TextField(
-      controller: _searchController,
-      onChanged: (value) {
-        setState(() {
-          _searchQuery = value.toLowerCase();
-        });
-      },
-      decoration: InputDecoration(
-        hintText: 'Search posts/events',
-        border: InputBorder.none,
-        icon: Icon(Icons.search),
-        suffixIcon: _searchQuery.isNotEmpty
-            ? IconButton(
-                icon: Icon(Icons.clear),
-                onPressed: () {
-                  _searchController.clear();
-                  setState(() {
-                    _searchQuery = '';
-                  });
-                },
-              )
-            : null,
+  Widget _buildSearchBar() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
       ),
-    ),
-  );
-}
-
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value.toLowerCase();
+          });
+        },
+        decoration: InputDecoration(
+          hintText: 'Search posts/events',
+          border: InputBorder.none,
+          icon: Icon(Icons.search),
+          suffixIcon:
+              _searchQuery.isNotEmpty
+                  ? IconButton(
+                    icon: Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                  )
+                  : null,
+        ),
+      ),
+    );
+  }
 
   Widget _buildImageSlider() {
     return Column(

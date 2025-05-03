@@ -11,6 +11,7 @@ import 'package:tibebnet/screens/profile/ProfilePage.dart';
 import 'package:tibebnet/screens/community_chat/CommunityChatPage.dart';
 import 'package:tibebnet/screens/community/CreateCommunityPage.dart';
 import 'package:tibebnet/screens/eventspage/EventsPage.dart';
+
 const Color primaryBlue = Color(0xFF3B82F6);
 const Color backgroundColor = Color(0xFF1E293B);
 const Color containerColor = Color(0xFF334155);
@@ -64,8 +65,7 @@ class _PostPageState extends State<PostPage> {
         context,
         MaterialPageRoute(builder: (context) => DashboardScreen()),
       );
-    }
-    else if (_selectedIndex == 3) {
+    } else if (_selectedIndex == 3) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => EventsPage()),
@@ -74,27 +74,42 @@ class _PostPageState extends State<PostPage> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
-      final uri = Uri.parse('https://api.cloudinary.com/v1_1/dyz3oqxod/image/upload');
-      final request = http.MultipartRequest('POST', uri)
-        ..fields['upload_preset'] = 'flutter_unsigned'
-        ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: pickedFile.name));
+      final uri = Uri.parse(
+        'https://api.cloudinary.com/v1_1/dyz3oqxod/image/upload',
+      );
+      final request =
+          http.MultipartRequest('POST', uri)
+            ..fields['upload_preset'] = 'flutter_unsigned'
+            ..files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                bytes,
+                filename: pickedFile.name,
+              ),
+            );
 
       final response = await request.send();
       if (response.statusCode == 200) {
         final data = jsonDecode(await response.stream.bytesToString());
         setState(() => _imageUrl = data['secure_url']);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Image upload failed')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Image upload failed')));
       }
     }
   }
 
   Future<void> _submitPost() async {
     if (_post.text.isEmpty || _selectedOption == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields.')),
+      );
       return;
     }
 
@@ -103,7 +118,9 @@ class _PostPageState extends State<PostPage> {
       final userId = prefs.getString('user_id');
 
       final nlpResponse = await http.post(
-        Uri.parse('https://api.nlpcloud.io/v1/gpu/finetuned-llama-3-70b/chatbot'),
+        Uri.parse(
+          'https://api.nlpcloud.io/v1/gpu/finetuned-llama-3-70b/chatbot',
+        ),
         headers: {
           'Authorization': 'Token cb908883cb733a18791b34ec1a5354ac1a3bd67d',
           'Content-Type': 'application/json',
@@ -111,23 +128,23 @@ class _PostPageState extends State<PostPage> {
         body: jsonEncode({
           "input": _post.text,
           "context":
-              "You are an AI assistant named Patrick. Based on the post below, you will give a strict numeric rating from 0 to 100 depending on how helpful, meaningful, and socially supportive the content is. Only respond with a number. No explanations.\n\n"
-              "Analyze the following social media post and assign it an educational/student relevance score between 0 and 100 based on these strict criteria:\n\n"
-              "Educative Value (e.g., tutorials, study tips, career advice):\nHigh (70–100): Directly teaches a skill/concept (e.g., \"How to solve calculus problems\").\n"
-              "Medium (30–69): Indirectly useful (e.g., \"Upcoming programming workshop\").\n"
-              "Low (0–29): No educational value (e.g., \"My lunch today\").\n\n"
-              "Event/Road Relevance (e.g., campus events, hackathons, road safety):\nHigh (70–100): Official student events, deadlines, or safety alerts.\n"
-              "Medium (30–69): Informal meetups or tangential mentions.\n"
-              "Low (0–29): Unrelated to events/roads.\n\n"
-              "Student/Learner Importance:\nAutomatically 0 if the post is about personal gossip, ads, or irrelevant topics.",
-          "history": []
+              "You are an AI assistant named Patrick. First, analyze the post content and assign it a numeric score (0 to 100) based on its educational, event, and student relevance. Then, briefly explain why that score was given in 1 sentence.\n\n"
+              "Return the score on the first line and the explanation on the second line. Example:\n"
+              "85\nThis post provides clear career advice for students.\n\n"
+              "Post: ${_post.text}",
+          "history": [],
         }),
       );
 
-      if (nlpResponse.statusCode != 200) throw Exception("Scoring failed");
+      if (nlpResponse.statusCode != 200) {
+        throw Exception("Scoring failed");
+      }
 
-      final output = jsonDecode(nlpResponse.body)['response'];
-      final points = int.tryParse(output.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+      final responseText = jsonDecode(nlpResponse.body)['response'];
+      final lines = responseText.trim().split('\n');
+      final points = int.tryParse(lines.firstWhere((line) => RegExp(r'\d+').hasMatch(line), orElse: () => "0").replaceAll(RegExp(r'\D'), '')) ?? 0;
+      final feedback = lines.length > 1 ? lines[1].trim() : "AI could not provide an explanation.";
+
 
       final postResponse = await http.post(
         Uri.parse('http://localhost:3000/api/posts'),
@@ -144,13 +161,19 @@ class _PostPageState extends State<PostPage> {
       if (postResponse.statusCode == 201 || postResponse.statusCode == 200) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => SuccessAnimationScreen(points: points)),
+          MaterialPageRoute(
+            builder:
+                (_) =>
+                    PostSuccessScreen(points: points, feedback: feedback),
+          ),
         );
       } else {
         throw Exception("Post failed: ${postResponse.body}");
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: ${e.toString()}')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed: ${e.toString()}')));
     }
   }
 
@@ -167,7 +190,7 @@ class _PostPageState extends State<PostPage> {
           gradient: LinearGradient(colors: [primaryBlue, Colors.blueAccent]),
         ),
       ),
-            bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         elevation: 0,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
@@ -179,11 +202,7 @@ class _PostPageState extends State<PostPage> {
         type: BottomNavigationBarType.fixed,
         items: [
           BottomNavigationBarItem(
-            icon: Icon(
-              Icons.home,
-              size: 24,
-              color: Colors.blue,
-            ),
+            icon: Icon(Icons.home, size: 24, color: Colors.blue),
             label: '',
           ),
           BottomNavigationBarItem(
@@ -191,7 +210,11 @@ class _PostPageState extends State<PostPage> {
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.add, size: 24, color: const Color.fromARGB(255, 128, 198, 255)),
+            icon: Icon(
+              Icons.add,
+              size: 24,
+              color: const Color.fromARGB(255, 128, 198, 255),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
@@ -254,25 +277,29 @@ class PostContentSection extends StatelessWidget {
 class PostTypeSelector extends StatelessWidget {
   final String? selectedOption;
   final ValueChanged<String?> onChanged;
-  const PostTypeSelector({required this.selectedOption, required this.onChanged});
+  const PostTypeSelector({
+    required this.selectedOption,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: ["Post", "Event"].map((option) {
-        return Row(
-          children: [
-            Radio<String>(
-              value: option,
-              groupValue: selectedOption,
-              onChanged: onChanged,
-              activeColor: primaryBlue,
-            ),
-            Text(option, style: const TextStyle(color: Colors.white)),
-            const SizedBox(width: 16),
-          ],
-        );
-      }).toList(),
+      children:
+          ["Post", "Event"].map((option) {
+            return Row(
+              children: [
+                Radio<String>(
+                  value: option,
+                  groupValue: selectedOption,
+                  onChanged: onChanged,
+                  activeColor: primaryBlue,
+                ),
+                Text(option, style: const TextStyle(color: Colors.white)),
+                const SizedBox(width: 16),
+              ],
+            );
+          }).toList(),
     );
   }
 }
@@ -289,12 +316,18 @@ class SubmitButton extends StatelessWidget {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryBlue,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
         onPressed: onPressed,
         child: const Text(
           "Share My Post",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
         ),
       ),
     );
@@ -309,7 +342,11 @@ class SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       title,
-      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 }
@@ -377,14 +414,18 @@ class ImageUploadSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white24),
             ),
-            child: imageUrl != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(imageUrl!, fit: BoxFit.cover),
-                  )
-                : const Center(
-                    child: Text("Tap to upload image", style: TextStyle(color: Colors.white54)),
-                  ),
+            child:
+                imageUrl != null
+                    ? ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(imageUrl!, fit: BoxFit.cover),
+                    )
+                    : const Center(
+                      child: Text(
+                        "Tap to upload image",
+                        style: TextStyle(color: Colors.white54),
+                      ),
+                    ),
           ),
         ),
       ],
@@ -406,43 +447,95 @@ class GradientText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ShaderMask(
-      shaderCallback: (bounds) => gradient.createShader(Rect.fromLTWH(0, 0, bounds.width, bounds.height)),
+      shaderCallback:
+          (bounds) => gradient.createShader(
+            Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+          ),
       child: Text(text, style: style.copyWith(color: Colors.white)),
     );
   }
 }
 
-class SuccessAnimationScreen extends StatelessWidget {
-  final int points;
 
-  const SuccessAnimationScreen({required this.points});
+class PostSuccessScreen extends StatelessWidget {
+  final int points;
+  final String feedback;
+
+  const PostSuccessScreen({
+    super.key,
+    required this.points,
+    required this.feedback,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Lottie.asset('assets/animations/success.json', width: 200),
-            const SizedBox(height: 20),
-            Text(
-              "🎉 You've earned $points points!",
-              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: primaryBlue),
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => DashboardScreen()),
-                );
-              },
-              child: const Text("Go to Dashboard", style: TextStyle(color: Colors.white)),
-            )
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Lottie.asset('assets/animations/success.json', width: 200),
+              const SizedBox(height: 20),
+              Text(
+                "🎉 You've earned $points points!",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 30),
+              // AI Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: [
+                    Lottie.asset('assets/animations/robot_ai.json', width: 120),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "🤖 This is Tibeb speaking...",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      feedback,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryBlue,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                  );
+                },
+                child: const Text(
+                  "Go to Dashboard",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
